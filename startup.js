@@ -5,6 +5,8 @@ const crypto = require("crypto");
 const https = require("https");
 const http = require("http");
 
+process.env.DOTNET_SYSTEM_GLOBALIZATION_INVARIANT = "1";
+
 const RUNNER_VERSION = process.env.RUNNER_VERSION || "2.334.0";
 const RUNNER_ARCH = "arm64";
 const RUNNER_OS = "linux";
@@ -116,15 +118,23 @@ function configureRunner() {
   }
 
   log(`Configuring runner for ${REPO_URL}`);
-  const configEnv = {
-    ...process.env,
-    DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: "1",
-  };
+
+  const envSh = path.join(RUNNER_DIR, "env.sh");
+  if (fs.existsSync(envSh)) {
+    let envContent = fs.readFileSync(envSh, "utf8");
+    if (!envContent.includes("DOTNET_SYSTEM_GLOBALIZATION_INVARIANT")) {
+      envContent += '\nexport DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1\n';
+      fs.writeFileSync(envSh, envContent);
+      log("Patched env.sh with DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1");
+    }
+  }
+
   run(
-    `./config.sh --url "${REPO_URL}" --token "${RUNNER_TOKEN}" ` +
+    `export DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 && ` +
+      `./config.sh --url "${REPO_URL}" --token "${RUNNER_TOKEN}" ` +
       `--name "${RUNNER_NAME}" --labels "${RUNNER_LABELS}" ` +
       `--work "${RUNNER_WORK_DIR}" --unattended --replace`,
-    { cwd: RUNNER_DIR, env: configEnv }
+    { cwd: RUNNER_DIR }
   );
   log("Runner configured successfully");
 }
@@ -133,13 +143,9 @@ function startRunner() {
   log("Starting GitHub Actions runner...");
 
   const runSh = path.join(RUNNER_DIR, "run.sh");
-  const runner = spawn("bash", [runSh], {
+  const runner = spawn("bash", ["-c", `export DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 && bash ${runSh}`], {
     cwd: RUNNER_DIR,
     stdio: "inherit",
-    env: {
-      ...process.env,
-      DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: "1",
-    },
   });
 
   runner.on("error", (err) => {
