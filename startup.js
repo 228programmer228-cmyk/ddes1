@@ -77,6 +77,31 @@ function verifyHash(filePath, expected) {
   log("Hash verified OK");
 }
 
+function patchRunnerScripts() {
+  const configSh = path.join(RUNNER_DIR, "config.sh");
+  if (fs.existsSync(configSh)) {
+    let content = fs.readFileSync(configSh, "utf8");
+    if (content.includes("libicu")) {
+      content = content.replace(
+        /# Check dotnet Core 6\.0 dependencies for Linux\nif \[\[.*?\nfi\n/s,
+        "# libicu check removed by startup.js (DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1)\n"
+      );
+      fs.writeFileSync(configSh, content);
+      log("Patched config.sh: removed libicu/ldd dependency checks");
+    }
+  }
+
+  const runHelperTemplate = path.join(RUNNER_DIR, "run-helper.sh.template");
+  if (fs.existsSync(runHelperTemplate)) {
+    let content = fs.readFileSync(runHelperTemplate, "utf8");
+    if (!content.includes("DOTNET_SYSTEM_GLOBALIZATION_INVARIANT")) {
+      content = "export DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1\n" + content;
+      fs.writeFileSync(runHelperTemplate, content);
+      log("Patched run-helper.sh.template with DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1");
+    }
+  }
+}
+
 async function setupRunner() {
   if (!fs.existsSync(RUNNER_DIR)) {
     fs.mkdirSync(RUNNER_DIR, { recursive: true });
@@ -96,6 +121,8 @@ async function setupRunner() {
   } else {
     log("Runner already extracted, skipping download");
   }
+
+  patchRunnerScripts();
 
   if (fs.existsSync(tarballPath)) {
     fs.unlinkSync(tarballPath);
