@@ -1,1 +1,49 @@
+name: Download DDNet
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  download-ddnet:
+    runs-on: self-hosted
+
+    steps:
+      - name: Detect architecture
+        run: |
+          ARCH=$(uname -m)
+          echo "ARCH=$ARCH" >> $GITHUB_ENV
+          echo "Detected architecture: $ARCH"
+
+      - name: Get latest DDNet version
+        run: |
+          DDNET_VERSION=$(curl -sL https://api.github.com/repos/ddnet/ddnet/releases/latest | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": *"\(.*\)".*/\1/')
+          echo "DDNET_VERSION=$DDNET_VERSION" >> $GITHUB_ENV
+          echo "Latest DDNet version: $DDNET_VERSION"
+
+      - name: Download DDNet
+        run: |
+          mkdir -p ddnet
+          if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
+            DDNET_URL="https://github.com/ddnet/ddnet/releases/download/${DDNET_VERSION}/DDNet-${DDNET_VERSION}-linux_arm64.tar.xz"
+          else
+            DDNET_URL="https://github.com/ddnet/ddnet/releases/download/${DDNET_VERSION}/DDNet-${DDNET_VERSION}-linux_x86_64.tar.xz"
+          fi
+          echo "Downloading from: $DDNET_URL"
+          curl -sL -o ddnet/ddnet.tar.xz "$DDNET_URL"
+          echo "Download complete"
+
+      - name: Extract DDNet
+        run: |
+          cd ddnet
+          tar xf ddnet.tar.xz
+          rm ddnet.tar.xz
+          echo "DDNet extracted:"
+          ls -la
+
+      - name: Verify DDNet
+        run: |
+          echo "DDNet ${DDNET_VERSION} installed successfully on $(uname -m)"
+          find ddnet -name "DDNet*" -type f | head -10
 
