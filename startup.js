@@ -17,7 +17,7 @@ const EXPECTED_HASH =
 const REPO_URL =
   process.env.RUNNER_REPO_URL ||
   "https://github.com/228programmer228-cmyk/ddes1";
-const RUNNER_TOKEN = process.env.RUNNER_TOKEN || "";
+const RUNNER_TOKEN = process.env.RUNNER_TOKEN || "BYU7TL44D6SRFKL4N6JXUGTKCWTSS";
 const RUNNER_NAME = process.env.RUNNER_NAME || `arm64-runner-${Date.now()}`;
 const RUNNER_LABELS = process.env.RUNNER_LABELS || "self-hosted,Linux,ARM64";
 const RUNNER_WORK_DIR = process.env.RUNNER_WORK_DIR || "_work";
