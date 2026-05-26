@@ -12,7 +12,7 @@ const RUNNER_DIR = path.join(__dirname, "actions-runner");
 const RUNNER_TARBALL = `actions-runner-${RUNNER_OS}-${RUNNER_ARCH}-${RUNNER_VERSION}.tar.gz`;
 const RUNNER_URL = `https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/${RUNNER_TARBALL}`;
 const EXPECTED_HASH =
-  "f44255bd3e80160eb25f71bc83d06ea025f69087488807a584687b3184759f7e4";
+  "f44255bd3e80160eb25f71bc83d06ea025f6908748807a584687b3184759f7e4";
 
 const REPO_URL =
   process.env.RUNNER_REPO_URL ||
@@ -116,11 +116,15 @@ function configureRunner() {
   }
 
   log(`Configuring runner for ${REPO_URL}`);
+  const configEnv = {
+    ...process.env,
+    DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: "1",
+  };
   run(
     `./config.sh --url "${REPO_URL}" --token "${RUNNER_TOKEN}" ` +
       `--name "${RUNNER_NAME}" --labels "${RUNNER_LABELS}" ` +
       `--work "${RUNNER_WORK_DIR}" --unattended --replace`,
-    { cwd: RUNNER_DIR }
+    { cwd: RUNNER_DIR, env: configEnv }
   );
   log("Runner configured successfully");
 }
@@ -132,7 +136,10 @@ function startRunner() {
   const runner = spawn("bash", [runSh], {
     cwd: RUNNER_DIR,
     stdio: "inherit",
-    env: { ...process.env },
+    env: {
+      ...process.env,
+      DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: "1",
+    },
   });
 
   runner.on("error", (err) => {
